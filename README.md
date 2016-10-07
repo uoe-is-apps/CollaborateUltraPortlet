@@ -1,5 +1,7 @@
 # CollaborateUltraPortlet
-uPortal portlet providing integration with Collaborate Ultra
+uPortal portlet providing integration with Collaborate Ultra. The portlet allows creation/update/deletion of sessions, retrieval of session recordings, and the addition/removal of internal/external participants to sessions. Internal user lookup feature is provided via LDAP lookup. 
+
+The portlet also has a basic adminsitrative function which allows users who are in a configurable group to administer all sessions in the system.
 
 # Important!
 
