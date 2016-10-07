@@ -9,7 +9,7 @@ This portlet will only work with a valid Collaborate Ultra licencse and setup. I
 
 # Requirements
 
-* You will need a database set up which this portlet will use to cache collaborate ultra session information locally. A sample table creation script can be found at /src/test/resources/create-tables-vc-ultra.sql.
+* You will need a database set up which this portlet will use to cache collaborate ultra session information locally. A sample table creation script can be found at **/src/test/resources/create-tables-vc-ultra.sql**.
 
 # Configuration
 
