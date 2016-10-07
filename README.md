@@ -5,7 +5,7 @@ The portlet also has a basic adminsitrative function which allows users who are 
 
 # Important!
 
-This portlet will only work with a valid Collaborate Ultra licencse and setup. If you have a valid setup you will have been given API information which you will need to configure the portlet.
+This portlet will only work with a valid Collaborate Ultra license and setup. If you have a valid setup you will have been given API information which you will need to configure the portlet.
 
 # Requirements
 
