@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to Apereo under one or more contributor license
+    agreements. See the NOTICE file distributed with this work
+    for additional information regarding copyright ownership.
+    Apereo licenses this file to you under the Apache License,
+    Version 2.0 (the "License"); you may not use this file
+    except in compliance with the License.  You may obtain a
+    copy of the License at the following location:
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:c="http://www.springframework.org/schema/c"
+    xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+
+    <!-- This is the root Spring WebApplicationContext.  Place in this context the service, dao, and utility-level beans
+       the web tier will access.
+
+       NOTE:  If you have multiple portlets in portlet.xml, you can move beans from the web-tier Spring WebApplicationContext
+       to the root context to avoid having the bean definitions duplicated.
+    -->
+
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+    <property name="location" value="classpath:configuration.properties"/>
+    </bean>
+
+    <context:component-scan base-package="uk.ac.ed.collaborate" />
+    <context:annotation-config/>
+
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+        <property name="driverClass" value="${jdbc.driverclassname}" />
+        <property name="jdbcUrl" value="${jdbc.url}" />
+        <property name="user" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+        <property name="minPoolSize" value="${jdbc.minpoolsize}" />
+        <property name="maxPoolSize" value="${jdbc.maxpoolsize}" />
+        <property name="maxIdleTime" value="${jdbc.maxidletime}" />
+        <property name="idleConnectionTestPeriod" value="${jdbc.idleconnectiontestperiod}"/>
+        <property name="preferredTestQuery" value="${jdbc.preferredtestquery}"/>
+    </bean>
+
+    <bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <property name="packagesToScan" value="uk.ac.ed.collaborate.data" />
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.MySQL5Dialect</prop>
+                <prop key="hibernate.show_sql">false</prop>
+                <prop key="hibernate.cache.provider_class">org.hibernate.cache.EhCacheProvider</prop>
+            </props>
+        </property>
+    </bean>
+    <bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+        <property name="sessionFactory" ref="sessionFactory" />
+    </bean>
+
+    <tx:annotation-driven transaction-manager="transactionManager" />
+
+    <bean id="ldapContextSource" class="org.springframework.ldap.core.support.LdapContextSource">
+        <property name="url" value="${ldap.url}" />
+        <property name="base" value="${ldap.base}" />
+        <!-- You only need to bind as a user if you're outside the University network
+        <property name="authenticationSource" ref="authenticationSource" />
+        <property name="pooled" value="false" />-->
+        <!-- If userName and password are not set, the value below should be
+        in use -->
+        <property name="anonymousReadOnly" value="true"/>
+    </bean>
+
+    <bean id="ldapTemplate" class="org.springframework.ldap.core.LdapTemplate">
+        <constructor-arg ref="ldapContextSource" />
+    </bean>
+
+    <bean id="restTemplate" class="org.springframework.web.client.RestTemplate" />
+
+    <bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+        <property name="basenames">
+            <list>
+                <value>messages</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+        <property name="host" value="${mail.host}"/>
+    </bean>
+
+    <bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <property name="corePoolSize" value="5" />
+        <property name="maxPoolSize" value="10" />
+        <property name="queueCapacity" value="25" />
+    </bean>
+
+    <bean id="mailTemplateService" class="uk.ac.ed.collaborate.service.MailTemplateService">
+        <constructor-arg ref="taskExecutor" />
+    </bean>
+
+    <!-- Define the four email templates which are to be used -->
+    <bean id="moderatorMailMessage" class="org.springframework.mail.SimpleMailMessage">
+        <property name="from" value="Is.helpline@ed.ac.uk" />
+        <property name="subject" value="Collaborate Session Invite" />
+        <property name="text">
+            <value><![CDATA[Dear %s
+
+You have been enrolled as a Moderator and are invited by %s to attend the following Collaborate session: %s
+
+Session Details
+Start Date and Time: %s
+End Date and Time: %s
+
+To join the session, click on the following link to launch MyEd: %s
+
+Contact %s if you have any questions about the session.]]></value>
+        </property>
+    </bean>
+
+    <bean id="intParticipantMailMessage" class="org.springframework.mail.SimpleMailMessage">
+        <property name="from" value="Is.helpline@ed.ac.uk" />
+        <property name="subject" value="Collaborate Session Invite" />
+        <property name="text">
+            <value><![CDATA[Dear %s
+
+You have been invited by %s to attend the following Collaborate session: %s
+
+Session Details
+Start Date and Time: %s
+End Date and Time: %s
+
+To join the session, click on the following link: %s
+
+If the link does not work, you may need to copy and paste the link into your browser (ensure that you copy and paste the whole link).
+
+Contact %s if you have any questions about the session.
+]]></value>
+        </property>
+    </bean>
+
+    <bean id="extParticipantMailMessage" class="org.springframework.mail.SimpleMailMessage">
+        <property name="from" value="Is.helpline@ed.ac.uk" />
+        <property name="subject" value="Collaborate Session Invite" />
+        <property name="text">
+            <value><![CDATA[Dear %s
+
+You have been invited by %s to attend the following Collaborate session: %s
+
+Session Details
+Start Date and Time: %s
+End Date and Time: %s
+
+To join the session, click on the following link: %s
+
+If the link does not work, you may need to cut and paste it into a browser (ensure that you cut and paste the whole link).
+
+Contact %s if you have any questions about the session.
+]]></value>
+        </property>
+    </bean>
+
+    <bean id="sessionDeletionMessage" class="org.springframework.mail.SimpleMailMessage">
+        <property name="from" value="Is.helpline@ed.ac.uk" />
+        <property name="subject" value="Collaborate Session Cancellation" />
+        <property name="text">
+            <value><![CDATA[Dear %s
+
+%s invited you to participate in the following Collaborate session: %s
+
+Session Details
+Start Date and Time: %s
+End Date and Time: %s
+
+This session has now been cancelled.
+
+Please contact %s if you have any questions.]]></value>
+        </property>
+    </bean>
+
+    <bean id="sessionUpdateMessage" class="org.springframework.mail.SimpleMailMessage">
+        <property name="from" value="Is.helpline@ed.ac.uk" />
+        <property name="subject" value="Collaborate Session Updated" />
+        <property name="text">
+            <value><![CDATA[Dear %s
+
+%s invited you to participate in the following Collaborate session: %s
+
+Original Session Details
+Start Date and Time: %s
+End Date and Time: %s
+
+This session has now been updated to 
+
+New Session Details
+Start Date and Time: %s
+End Date and Time: %s                
+                
+To view more details about this session, click on the following link: %s
+
+If the link does not work, you may need to cut and paste it into a browser (ensure that you cut and paste the whole link).
+                                
+Please contact %s if you have any questions.]]></value>
+        </property>
+    </bean>
+
+</beans>
